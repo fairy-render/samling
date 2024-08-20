@@ -1,0 +1,8 @@
+[workspace]
+
+members = ["samling"]
+
+
+[workspace.dependencies]
+serde = { version = "1" }
+relative-path = { version = "1" }

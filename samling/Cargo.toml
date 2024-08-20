@@ -1,0 +1,36 @@
+[package]
+name = "samling"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+fs = ["tokio", "tokio-util", "pathdiff"]
+embed = ["rust-embed"]
+
+[dependencies]
+relative-path.workspace = true
+mime = { version = "0.3" }
+mime_guess = { version = "2" }
+serde.workspace = true
+bytes = { version = "1" }
+tokio = { version = "1", features = ["fs", "io-util"], optional = true }
+tokio-util = { version = "0.7", default-features = false, features = [
+  "io",
+], optional = true }
+async-stream = { version = "0.3" }
+pathdiff = { version = "0.2", optional = true }
+futures = { version = "0.3" }
+url = { version = "2" }
+
+rust-embed = { version = "8", optional = true }
+
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "fs"] }
+
+
+[[example]]
+path = "examples/filestore.rs"
+name = "filestore"
+required-features = ["fs", "embed"]
