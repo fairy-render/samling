@@ -2,6 +2,8 @@
 
 members = ["samling"]
 
+resolver = "2"
+
 
 [workspace.dependencies]
 serde = { version = "1" }

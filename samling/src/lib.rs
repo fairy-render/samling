@@ -5,7 +5,7 @@ mod file;
 mod files;
 mod path;
 mod store;
-mod util;
+pub mod util;
 
 #[cfg(feature = "embed")]
 pub mod embed;
