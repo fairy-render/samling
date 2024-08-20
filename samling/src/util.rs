@@ -1,7 +1,7 @@
 use std::io;
 
-use bytes::{Bytes, BytesMut};
-use futures::{pin_mut, stream::BoxStream, StreamExt, TryStreamExt};
+use bytes::BytesMut;
+use futures::{pin_mut, TryStreamExt};
 #[cfg(feature = "fs")]
 use tokio_util::io::ReaderStream;
 
