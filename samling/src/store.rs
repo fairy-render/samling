@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io, iter::Flatten};
+use std::{collections::HashMap, io, iter::Flatten, sync::Arc};
 
 use bytes::Bytes;
 use core::future::Future;
@@ -542,5 +542,34 @@ where
 
             Ok(futures::stream::iter(ret).flatten().boxed())
         }
+    }
+}
+
+impl<T> FileStore for Arc<T>
+where
+    T: FileStore,
+{
+    type File = T::File;
+
+    type List = T::List;
+
+    fn metadata(&self, path: &RelativePath) -> Result<Metadata, io::Error> {
+        (**self).metadata(path)
+    }
+
+    fn open_file(&self, path: &RelativePath) -> Result<Self::File, io::Error> {
+        (**self).open_file(path)
+    }
+
+    fn rm_file(&self, path: &RelativePath) -> Result<(), io::Error> {
+        (**self).rm_file(path)
+    }
+
+    fn write_file(&self, path: &RelativePath, init: FileInit) -> Result<(), io::Error> {
+        (**self).write_file(path, init)
+    }
+
+    fn list(&self) -> Self::List {
+        (**self).list()
     }
 }
