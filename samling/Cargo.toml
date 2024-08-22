@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = []
-fs = ["tokio", "tokio-util", "pathdiff"]
-embed = ["rust-embed"]
+default = ["fs", "embed"]
+fs = ["tokio", "tokio-util", "pathdiff", "walkdir"]
+embed = ["rust-embed", "tokio", "tokio/rt"]
 
 [dependencies]
 relative-path.workspace = true
@@ -24,7 +24,7 @@ futures = { version = "0.3" }
 url = { version = "2" }
 
 rust-embed = { version = "8", optional = true }
-
+walkdir = { version = "2", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "fs"] }

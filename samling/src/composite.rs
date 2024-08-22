@@ -1,83 +1,103 @@
-use std::{collections::HashMap, io};
-
-use futures::{StreamExt, TryStreamExt};
 use relative_path::{RelativePath, RelativePathBuf};
+use std::{
+    collections::HashMap,
+    io::{self},
+};
 
-use crate::{boxed::filestore_box, BoxFile, BoxFileStore, File, FileStore};
+use crate::{
+    boxed::{async_filestore_box, filestore_box, BoxFile, BoxFileStore},
+    AsyncFile, AsyncFileStore, BoxAsyncFile, BoxAsyncFileStore, File, FileStore,
+};
 
 #[derive(Default)]
-pub struct Composite {
-    routes: HashMap<String, Vec<BoxFileStore>>,
+pub struct SyncComposite {
+    routes: HashMap<RelativePathBuf, Vec<BoxFileStore>>,
 }
 
-impl Composite {
+impl SyncComposite {
     pub fn register<T>(&mut self, mut mount: &str, filestore: T)
     where
         T: FileStore + Send + Sync + 'static,
         T::File: Send + Sync + 'static,
         <T::File as File>::Body: Send,
+        T::List: Send,
     {
         if mount.starts_with("/") {
             mount = &mount[1..];
         }
 
         self.routes
-            .entry(mount.to_string())
+            .entry(mount.into())
             .or_default()
             .push(filestore_box(filestore));
     }
+}
 
-    async fn find<'a>(
-        &self,
-        name: &'a RelativePath,
-    ) -> io::Result<(&Vec<BoxFileStore>, &'a RelativePath)> {
-        let path = RelativePath::new(name);
+impl FileStore for SyncComposite {
+    type File = BoxFile;
 
-        let Some(mut parent) = path.parent() else {
-            return Err(io::ErrorKind::NotFound.into());
-        };
+    type List = Box<dyn Iterator<Item = io::Result<RelativePathBuf>>>;
 
-        loop {
-            if let Some(routes) = self.routes.get(parent.as_str()) {
-                let path = path.strip_prefix(parent.as_str()).expect("prefix");
-                if routes.exists(path).await {
-                    return Ok((routes, path));
-                }
-            }
+    fn metadata(&self, path: &RelativePath) -> Result<crate::Metadata, io::Error> {
+        self.routes.metadata(path)
+    }
 
-            if let Some(p) = parent.parent() {
-                parent = p;
-            } else {
-                break;
-            }
-        }
+    fn open_file(&self, path: &RelativePath) -> Result<Self::File, io::Error> {
+        self.routes.open_file(path)
+    }
 
-        Err(io::ErrorKind::NotFound.into())
+    fn rm_file(&self, path: &RelativePath) -> Result<(), io::Error> {
+        self.routes.rm_file(path)
+    }
+
+    fn write_file(&self, path: &RelativePath, init: crate::FileInit) -> Result<(), io::Error> {
+        self.routes.write_file(path, init)
+    }
+
+    fn list(&self) -> Self::List {
+        self.routes.list()
     }
 }
 
-impl FileStore for Composite {
-    type File = BoxFile;
+#[derive(Default)]
+pub struct AsyncComposite {
+    routes: HashMap<RelativePathBuf, Vec<BoxAsyncFileStore>>,
+}
+
+impl AsyncComposite {
+    pub fn register<T>(&mut self, mut mount: &str, filestore: T)
+    where
+        T: AsyncFileStore + Send + Sync + 'static,
+        T::File: Send + Sync + 'static,
+        <T::File as AsyncFile>::Body: Send,
+    {
+        if mount.starts_with("/") {
+            mount = &mount[1..];
+        }
+
+        self.routes
+            .entry(mount.into())
+            .or_default()
+            .push(async_filestore_box(filestore));
+    }
+}
+
+impl AsyncFileStore for AsyncComposite {
+    type File = BoxAsyncFile;
 
     fn metadata(
         &self,
         path: &relative_path::RelativePath,
     ) -> impl futures::prelude::Future<Output = Result<crate::Metadata, std::io::Error>> + Send
     {
-        async move {
-            let (fs, path) = self.find(path).await?;
-            fs.metadata(path).await
-        }
+        self.routes.metadata(path)
     }
 
     fn open_file(
         &self,
         path: &relative_path::RelativePath,
     ) -> impl futures::prelude::Future<Output = Result<Self::File, std::io::Error>> + Send {
-        async move {
-            let (fs, path) = self.find(path).await?;
-            fs.open_file(path).await
-        }
+        self.routes.open_file(path)
     }
 
     fn rm_file(
@@ -106,27 +126,6 @@ impl FileStore for Composite {
             std::io::Error,
         >,
     > + Send {
-        async move {
-            let stream = self.routes.iter().map(|(k, v)| async move {
-                let k = k.clone();
-                let mut stream = v.list().await?;
-                let ret = async_stream::stream! {
-                  let path = RelativePathBuf::from(k);
-                  while let Some(next) = stream.next().await {
-                    yield next.map(|next| path.join(next));
-                  }
-
-                };
-
-                io::Result::Ok(ret)
-            });
-
-            let ret = futures::stream::iter(stream)
-                .then(|m| m)
-                .try_collect::<Vec<_>>()
-                .await?;
-
-            Ok(futures::stream::iter(ret).flatten().boxed())
-        }
+        self.routes.list()
     }
 }

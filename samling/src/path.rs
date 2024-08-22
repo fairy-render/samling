@@ -2,7 +2,7 @@ use std::io;
 
 use relative_path::{RelativePath, RelativePathBuf};
 
-use crate::{FileInit, FileStore, Metadata};
+use crate::{AsyncFileStore, FileInit, Metadata};
 
 #[derive(Debug, Clone)]
 pub struct Path<T> {
@@ -19,7 +19,7 @@ impl<T> core::ops::Deref for Path<T> {
 
 impl<T> Path<T>
 where
-    T: FileStore,
+    T: AsyncFileStore,
 {
     pub fn new(store: T, path: RelativePathBuf) -> Path<T> {
         Path { store, path }

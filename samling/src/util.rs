@@ -5,12 +5,12 @@ use futures::{pin_mut, TryStreamExt};
 #[cfg(feature = "fs")]
 use tokio_util::io::ReaderStream;
 
-use crate::{File, FileStore, Path};
+use crate::{AsyncFile, AsyncFileStore, Path};
 
 pub async fn copy<S, T>(source: Path<S>, target: Path<T>) -> io::Result<()>
 where
-    S: FileStore,
-    T: FileStore,
+    S: AsyncFileStore,
+    T: AsyncFileStore,
 {
     let file = source.open().await?;
     let meta = source.metadata().await?;

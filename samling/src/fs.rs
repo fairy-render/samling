@@ -13,21 +13,9 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::io::ReaderStream;
 use url::Url;
 
-use crate::{File, FileInit, FileStore, Metadata};
+use crate::{AsyncFile, AsyncFileStore, File, FileInit, FileStore, Metadata};
 
-pub struct FsFileStore {
-    root: PathBuf,
-}
-
-impl FsFileStore {
-    pub async fn new(path: PathBuf) -> Result<FsFileStore, io::Error> {
-        Ok(FsFileStore {
-            root: tokio::fs::canonicalize(path).await?,
-        })
-    }
-}
-
-impl FileStore for FsFileStore {
+impl AsyncFileStore for FsFileStore {
     type File = FsFile;
 
     fn metadata(
@@ -154,11 +142,7 @@ impl FileStore for FsFileStore {
     }
 }
 
-pub struct FsFile {
-    path: PathBuf,
-}
-
-impl File for FsFile {
+impl AsyncFile for FsFile {
     type Body = ReaderStream<tokio::fs::File>;
 
     fn read_range(
@@ -188,5 +172,113 @@ impl File for FsFile {
 
     fn url(&self) -> Option<url::Url> {
         Url::from_file_path(&self.path).ok()
+    }
+}
+
+// Sync
+
+pub struct FsFileStore {
+    root: PathBuf,
+}
+
+impl FsFileStore {
+    pub fn new(path: PathBuf) -> Result<FsFileStore, io::Error> {
+        Ok(FsFileStore {
+            root: std::fs::canonicalize(path)?,
+        })
+    }
+
+    pub async fn new_async(path: PathBuf) -> Result<FsFileStore, io::Error> {
+        Ok(FsFileStore {
+            root: tokio::fs::canonicalize(path).await?,
+        })
+    }
+}
+
+impl FileStore for FsFileStore {
+    type File = FsFile;
+
+    type List = Box<dyn Iterator<Item = io::Result<RelativePathBuf>> + Send>;
+
+    fn metadata(&self, path: &RelativePath) -> Result<Metadata, io::Error> {
+        let meta = std::fs::metadata(path.to_logical_path(&self.root))?;
+
+        if !meta.is_file() {
+            return Err(io::Error::other("not a file"));
+        }
+
+        let mime = if let Some(ext) = path.extension() {
+            mime_guess::from_ext(ext).first_or_octet_stream()
+        } else {
+            mime::APPLICATION_OCTET_STREAM
+        };
+
+        Ok(Metadata {
+            path: path.to_relative_path_buf(),
+            size: meta.size(),
+            mime,
+        })
+    }
+
+    fn open_file(&self, path: &RelativePath) -> Result<Self::File, io::Error> {
+        let full_path = path.to_logical_path(&self.root);
+        if !full_path.is_file() {
+            panic!("file does not exits")
+        }
+
+        Ok(FsFile { path: full_path })
+    }
+
+    fn rm_file(&self, path: &RelativePath) -> Result<(), io::Error> {
+        let full_path = path.to_logical_path(&self.root);
+        if !full_path.is_file() {
+            return Ok(());
+        }
+
+        std::fs::remove_file(full_path)?;
+
+        Ok(())
+    }
+
+    fn write_file(&self, path: &RelativePath, init: FileInit) -> Result<(), io::Error> {
+        todo!()
+    }
+
+    fn list(&self) -> Self::List {
+        let root = self.root.clone();
+        Box::new(
+            walkdir::WalkDir::new(&self.root)
+                .into_iter()
+                .filter_map(move |m| match m {
+                    Ok(m) => {
+                        let path = m.path();
+                        let rel_path = pathdiff::diff_paths(&path, &root);
+
+                        rel_path
+                            .and_then(|m| RelativePathBuf::from_path(m).ok())
+                            .map(Ok)
+                    }
+                    Err(err) => {
+                        // Some(Err(err));
+                        panic!()
+                    }
+                }),
+        )
+    }
+}
+
+pub struct FsFile {
+    path: PathBuf,
+}
+
+impl File for FsFile {
+    type Body = std::fs::File;
+
+    fn read_range(&self, range: std::ops::Range<u64>) -> Result<Bytes, io::Error> {
+        todo!()
+    }
+
+    fn reader(&self) -> Result<Self::Body, io::Error> {
+        std::fs::OpenOptions::new().read(true).open(&self.path)
     }
 }

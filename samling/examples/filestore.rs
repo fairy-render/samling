@@ -1,34 +1,27 @@
 use std::path::PathBuf;
 
-use filestore::{fs::FsFileStore, Composite, FileStore};
 use futures::StreamExt;
 use relative_path::RelativePath;
+use samling::{fs::FsFileStore, FileStore, SyncComposite};
 
 #[derive(rust_embed::Embed)]
 #[folder = "examples"]
 struct Asset;
 
 //
-#[tokio::main(flavor = "current_thread")]
-async fn main() {
-    let mut fs = Composite::default();
+fn main() {
+    let mut fs = SyncComposite::default();
 
-    fs.register(
-        "/",
-        FsFileStore::new(PathBuf::from("filestore")).await.unwrap(),
-    );
+    fs.register("/", FsFileStore::new(PathBuf::from("samling")).unwrap());
 
-    fs.register(
-        "/mount",
-        FsFileStore::new(PathBuf::from("packages")).await.unwrap(),
-    );
+    // fs.register(
+    //     "/mount",
+    //     FsFileStore::new(PathBuf::from("packages")).unwrap(),
+    // );
 
-    fs.register("/embed", filestore::embed::Embed::<Asset>::new());
+    // fs.register("/embed", samling::embed::Embed::<Asset>::new());
 
-    let file = fs
-        .metadata(RelativePath::new("embed/filestore.rs"))
-        .await
-        .unwrap();
+    let file = fs.metadata(RelativePath::new("src/util.rs")).unwrap();
 
     println!("File {:?}", file);
 

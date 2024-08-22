@@ -3,22 +3,25 @@ use std::{io, sync::Arc};
 use futures::stream::BoxStream;
 use relative_path::{RelativePath, RelativePathBuf};
 
-use crate::{boxed::filestore_box, BoxFile, BoxFileStore, File, FileInit, FileStore, Metadata};
+use crate::{
+    boxed::{async_filestore_box, filestore_box},
+    AsyncFile, AsyncFileStore, BoxAsyncFile, BoxAsyncFileStore, FileInit, Metadata,
+};
 
 #[derive(Clone)]
 pub struct Files {
-    store: Arc<BoxFileStore>,
+    store: Arc<BoxAsyncFileStore>,
 }
 
 impl Files {
     pub fn new<T>(store: T) -> Files
     where
-        T: FileStore + Send + Sync + 'static,
+        T: AsyncFileStore + Send + Sync + 'static,
         T::File: Send + Sync + 'static,
-        <T::File as File>::Body: Send + 'static,
+        <T::File as AsyncFile>::Body: Send + 'static,
     {
         Files {
-            store: Arc::new(filestore_box(store)),
+            store: Arc::new(async_filestore_box(store)),
         }
     }
 
@@ -26,7 +29,10 @@ impl Files {
         self.store.metadata(path.as_ref()).await
     }
 
-    pub async fn open_file(&self, path: impl AsRef<RelativePath>) -> Result<BoxFile, io::Error> {
+    pub async fn open_file(
+        &self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<BoxAsyncFile, io::Error> {
         self.store.open_file(path.as_ref()).await
     }
 

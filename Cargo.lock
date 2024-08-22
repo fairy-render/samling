@@ -402,6 +402,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "url",
+ "walkdir",
 ]
 
 [[package]]

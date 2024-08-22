@@ -14,7 +14,7 @@ pub mod embed;
 pub mod fs;
 
 pub use self::{
-    boxed::{BoxFile, BoxFileStore},
+    boxed::{BoxAsyncFile, BoxAsyncFileStore},
     composite::*,
     file::*,
     files::Files,
