@@ -439,7 +439,7 @@ where
 {
     type File = T::File;
 
-    type List = Box<dyn Iterator<Item = io::Result<RelativePathBuf>>>;
+    type List = Box<dyn Iterator<Item = io::Result<RelativePathBuf>> + Send>;
 
     fn metadata(&self, path: &RelativePath) -> Result<Metadata, io::Error> {
         let (fs, path) = find(&self, path)?;

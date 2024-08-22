@@ -17,7 +17,7 @@ pub use self::{
     boxed::{BoxAsyncFile, BoxAsyncFileStore},
     composite::*,
     file::*,
-    files::Files,
+    files::AsyncFiles,
     path::*,
     store::*,
 };

@@ -36,7 +36,7 @@ impl SyncComposite {
 impl FileStore for SyncComposite {
     type File = BoxFile;
 
-    type List = Box<dyn Iterator<Item = io::Result<RelativePathBuf>>>;
+    type List = Box<dyn Iterator<Item = io::Result<RelativePathBuf>> + Send>;
 
     fn metadata(&self, path: &RelativePath) -> Result<crate::Metadata, io::Error> {
         self.routes.metadata(path)
