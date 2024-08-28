@@ -4,6 +4,7 @@ mod either;
 mod file;
 mod files;
 mod path;
+mod prefix;
 mod store;
 pub mod util;
 
@@ -19,6 +20,7 @@ pub use self::{
     file::*,
     files::AsyncFiles,
     path::*,
+    prefix::Prefixed,
     store::*,
 };
 
