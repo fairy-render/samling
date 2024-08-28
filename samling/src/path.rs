@@ -2,7 +2,7 @@ use std::io;
 
 use relative_path::{RelativePath, RelativePathBuf};
 
-use crate::{AsyncFileInit, AsyncFileStore, FileInit, Metadata};
+use crate::{AsyncFileInit, AsyncFileStore, Metadata};
 
 #[derive(Debug, Clone)]
 pub struct Path<T> {

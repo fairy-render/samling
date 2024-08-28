@@ -4,8 +4,8 @@ use futures::stream::BoxStream;
 use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::{
-    boxed::{async_filestore_box, filestore_box, BoxFileStore},
-    AsyncFile, AsyncFileInit, AsyncFileStore, BoxAsyncFile, BoxAsyncFileStore, FileInit, Metadata,
+    boxed::async_filestore_box,
+    AsyncFile, AsyncFileInit, AsyncFileStore, BoxAsyncFile, BoxAsyncFileStore, Metadata,
 };
 
 #[derive(Clone)]
