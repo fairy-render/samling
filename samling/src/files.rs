@@ -5,7 +5,7 @@ use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::{
     boxed::{async_filestore_box, filestore_box, BoxFileStore},
-    AsyncFile, AsyncFileStore, BoxAsyncFile, BoxAsyncFileStore, FileInit, Metadata,
+    AsyncFile, AsyncFileInit, AsyncFileStore, BoxAsyncFile, BoxAsyncFileStore, FileInit, Metadata,
 };
 
 #[derive(Clone)]
@@ -43,7 +43,7 @@ impl AsyncFiles {
     pub async fn write_file(
         &self,
         path: impl AsRef<RelativePath>,
-        init: impl Into<FileInit>,
+        init: impl Into<AsyncFileInit>,
     ) -> Result<(), io::Error> {
         self.store.write_file(path.as_ref(), init.into()).await
     }

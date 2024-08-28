@@ -63,31 +63,15 @@ where
         &self,
         path: &relative_path::RelativePath,
     ) -> impl futures::prelude::Future<Output = Result<(), std::io::Error>> + Send {
-        async move {
-            let this = self.clone();
-            let path = path.to_relative_path_buf();
-
-            tokio::task::spawn_blocking(move || <Embed<T> as FileStore>::rm_file(&this, &path))
-                .await
-                .expect("spawn")
-        }
+        async move { Err(io::ErrorKind::PermissionDenied.into()) }
     }
 
     fn write_file(
         &self,
-        path: &relative_path::RelativePath,
-        init: crate::FileInit,
+        _path: &relative_path::RelativePath,
+        _init: crate::AsyncFileInit,
     ) -> impl futures::prelude::Future<Output = Result<(), std::io::Error>> + Send {
-        async move {
-            let this = self.clone();
-            let path = path.to_relative_path_buf();
-
-            tokio::task::spawn_blocking(move || {
-                <Embed<T> as FileStore>::write_file(&this, &path, init)
-            })
-            .await
-            .expect("spawn")
-        }
+        async move { Err(io::ErrorKind::PermissionDenied.into()) }
     }
 
     fn list(
@@ -164,7 +148,7 @@ where
     fn write_file(
         &self,
         path: &relative_path::RelativePath,
-        init: crate::FileInit,
+        init: crate::AsyncFileInit,
     ) -> impl futures::prelude::Future<Output = Result<(), std::io::Error>> + Send {
         async move { Err(io::ErrorKind::PermissionDenied.into()) }
     }

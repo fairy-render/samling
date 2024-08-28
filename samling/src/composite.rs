@@ -110,7 +110,7 @@ impl AsyncFileStore for AsyncComposite {
     fn write_file(
         &self,
         _path: &relative_path::RelativePath,
-        _init: crate::FileInit,
+        _init: crate::AsyncFileInit,
     ) -> impl futures::prelude::Future<Output = Result<(), std::io::Error>> + Send {
         async move { Err(std::io::ErrorKind::PermissionDenied.into()) }
     }

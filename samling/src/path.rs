@@ -2,7 +2,7 @@ use std::io;
 
 use relative_path::{RelativePath, RelativePathBuf};
 
-use crate::{AsyncFileStore, FileInit, Metadata};
+use crate::{AsyncFileInit, AsyncFileStore, FileInit, Metadata};
 
 #[derive(Debug, Clone)]
 pub struct Path<T> {
@@ -33,7 +33,7 @@ where
         self.store.open_file(&self.path).await
     }
 
-    pub async fn write(&self, body: impl Into<FileInit>) -> io::Result<()> {
+    pub async fn write(&self, body: impl Into<AsyncFileInit>) -> io::Result<()> {
         self.store.write_file(&self.path, body.into()).await
     }
 }

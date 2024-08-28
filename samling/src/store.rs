@@ -1,4 +1,9 @@
-use std::{collections::HashMap, io, iter::Flatten, sync::Arc};
+use std::{
+    collections::HashMap,
+    io::{self, Read},
+    iter::Flatten,
+    sync::Arc,
+};
 
 use bytes::Bytes;
 use core::future::Future;
@@ -15,17 +20,25 @@ use crate::{
 #[non_exhaustive]
 pub enum FileInit {
     Bytes(Bytes),
+    Read(Box<dyn Read + Send>),
+    #[cfg(feature = "fs")]
+    Path(std::path::PathBuf),
+}
+
+#[non_exhaustive]
+pub enum AsyncFileInit {
+    Bytes(Bytes),
     Stream(BoxStream<'static, io::Result<Bytes>>),
     #[cfg(feature = "fs")]
     Path(std::path::PathBuf),
 }
 
-impl FileInit {
-    pub fn stream<T>(stream: T) -> FileInit
+impl AsyncFileInit {
+    pub fn stream<T>(stream: T) -> AsyncFileInit
     where
         T: Stream<Item = io::Result<Bytes>> + Send + 'static,
     {
-        FileInit::Stream(stream.boxed())
+        AsyncFileInit::Stream(stream.boxed())
     }
 
     #[cfg(feature = "fs")]
@@ -53,34 +66,34 @@ impl FileInit {
     }
 }
 
-impl From<Bytes> for FileInit {
+impl From<Bytes> for AsyncFileInit {
     fn from(value: Bytes) -> Self {
-        FileInit::Bytes(value)
+        AsyncFileInit::Bytes(value)
     }
 }
 
-impl From<Vec<u8>> for FileInit {
+impl From<Vec<u8>> for AsyncFileInit {
     fn from(value: Vec<u8>) -> Self {
-        FileInit::Bytes(value.into())
+        AsyncFileInit::Bytes(value.into())
     }
 }
 
-impl From<&'static [u8]> for FileInit {
+impl From<&'static [u8]> for AsyncFileInit {
     fn from(value: &'static [u8]) -> Self {
-        FileInit::Bytes(Bytes::from_static(value))
+        AsyncFileInit::Bytes(Bytes::from_static(value))
     }
 }
 
 #[cfg(feature = "fs")]
-impl From<std::path::PathBuf> for FileInit {
+impl From<std::path::PathBuf> for AsyncFileInit {
     fn from(value: std::path::PathBuf) -> Self {
-        FileInit::Path(value)
+        AsyncFileInit::Path(value)
     }
 }
 
-impl From<BoxStream<'static, io::Result<Bytes>>> for FileInit {
+impl From<BoxStream<'static, io::Result<Bytes>>> for AsyncFileInit {
     fn from(value: BoxStream<'static, io::Result<Bytes>>) -> Self {
-        FileInit::Stream(value)
+        AsyncFileInit::Stream(value)
     }
 }
 
@@ -102,7 +115,7 @@ pub trait AsyncFileStore {
     fn write_file(
         &self,
         path: &RelativePath,
-        init: FileInit,
+        init: AsyncFileInit,
     ) -> impl Future<Output = Result<(), io::Error>> + Send;
 
     fn list(
@@ -146,7 +159,7 @@ where
     fn write_file(
         &self,
         path: &RelativePath,
-        init: FileInit,
+        init: AsyncFileInit,
     ) -> impl Future<Output = Result<(), io::Error>> + Send {
         (*self).write_file(path, init)
     }
@@ -289,7 +302,7 @@ where
     fn write_file(
         &self,
         path: &RelativePath,
-        init: FileInit,
+        init: AsyncFileInit,
     ) -> impl Future<Output = Result<(), io::Error>> + Send {
         async move {
             for fs in self {
@@ -504,7 +517,7 @@ where
     fn write_file(
         &self,
         _path: &relative_path::RelativePath,
-        _init: crate::FileInit,
+        _init: crate::AsyncFileInit,
     ) -> impl futures::prelude::Future<Output = Result<(), std::io::Error>> + Send {
         async move { Err(std::io::ErrorKind::PermissionDenied.into()) }
     }

@@ -83,7 +83,7 @@ where
     fn write_file(
         &self,
         path: &relative_path::RelativePath,
-        init: crate::FileInit,
+        init: crate::AsyncFileInit,
     ) -> impl futures::prelude::Future<Output = Result<(), std::io::Error>> + Send {
         async move { self.inner.write_file(&self.mount.join(path), init).await }
     }

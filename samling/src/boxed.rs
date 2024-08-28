@@ -8,7 +8,7 @@ use url::Url;
 use crate::{
     file::{AsyncFile, Metadata},
     store::AsyncFileStore,
-    File, FileInit, FileStore,
+    AsyncFileInit, File, FileInit, FileStore,
 };
 
 pub type BoxFileStore = Box<dyn DynamicFileStore + Send + Sync>;
@@ -149,7 +149,7 @@ pub trait DynamicAsyncFileStore {
     fn write_file<'a>(
         &'a self,
         path: &'a RelativePath,
-        init: FileInit,
+        init: AsyncFileInit,
     ) -> BoxFuture<'a, Result<(), io::Error>>;
 
     fn list<'a>(
@@ -209,7 +209,7 @@ where
     fn write_file<'a>(
         &'a self,
         path: &'a RelativePath,
-        init: FileInit,
+        init: AsyncFileInit,
     ) -> BoxFuture<'a, Result<(), io::Error>> {
         Box::pin(async move { self.0.write_file(path, init).await })
     }
@@ -279,7 +279,7 @@ impl AsyncFileStore for BoxAsyncFileStore {
     fn write_file(
         &self,
         path: &RelativePath,
-        init: FileInit,
+        init: AsyncFileInit,
     ) -> impl futures::prelude::Future<Output = Result<(), io::Error>> + Send {
         async move { (**self).write_file(path, init).await }
     }

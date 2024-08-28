@@ -1,5 +1,5 @@
 use std::{
-    io::{self, SeekFrom},
+    io::{self, SeekFrom, Write},
     os::unix::fs::MetadataExt,
     path::PathBuf,
 };
@@ -13,7 +13,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::io::ReaderStream;
 use url::Url;
 
-use crate::{AsyncFile, AsyncFileStore, File, FileInit, FileStore, Metadata};
+use crate::{AsyncFile, AsyncFileInit, AsyncFileStore, File, FileInit, FileStore, Metadata};
 
 impl AsyncFileStore for FsFileStore {
     type File = FsFile;
@@ -73,15 +73,15 @@ impl AsyncFileStore for FsFileStore {
     fn write_file(
         &self,
         path: &RelativePath,
-        init: FileInit,
+        init: AsyncFileInit,
     ) -> impl Future<Output = Result<(), io::Error>> + Send {
         async move {
             let full_path = path.to_logical_path(&self.root);
             match init {
-                FileInit::Bytes(bs) => {
+                AsyncFileInit::Bytes(bs) => {
                     tokio::fs::write(&full_path, &bs).await?;
                 }
-                FileInit::Stream(mut stream) => {
+                AsyncFileInit::Stream(mut stream) => {
                     let mut file = tokio::fs::OpenOptions::new()
                         .write(true)
                         .create(true)
@@ -95,7 +95,7 @@ impl AsyncFileStore for FsFileStore {
 
                     file.flush().await?;
                 }
-                FileInit::Path(path) => {
+                AsyncFileInit::Path(path) => {
                     tokio::fs::copy(path, full_path).await?;
                 }
             }
@@ -241,7 +241,28 @@ impl FileStore for FsFileStore {
     }
 
     fn write_file(&self, path: &RelativePath, init: FileInit) -> Result<(), io::Error> {
-        todo!()
+        let full_path = path.to_logical_path(&self.root);
+        match init {
+            FileInit::Bytes(bs) => {
+                std::fs::write(&full_path, &bs)?;
+            }
+            FileInit::Read(mut stream) => {
+                let mut file = std::fs::OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(&full_path)?;
+
+                std::io::copy(&mut stream, &mut file)?;
+
+                file.flush()?;
+            }
+            FileInit::Path(path) => {
+                std::fs::copy(path, full_path)?;
+            }
+        }
+
+        Ok(())
     }
 
     fn list(&self) -> Self::List {
