@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["fs", "embed"]
 fs = ["tokio", "tokio-util", "pathdiff", "walkdir"]
 embed = ["rust-embed", "tokio", "tokio/rt"]
 
