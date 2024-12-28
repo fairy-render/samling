@@ -1,6 +1,6 @@
 use std::io;
 
-use bytes::BytesMut;
+use bytes::{Bytes, BytesMut};
 use futures::{pin_mut, TryStreamExt};
 #[cfg(feature = "fs")]
 use tokio_util::io::ReaderStream;
@@ -34,4 +34,16 @@ pub async fn file_stream(path: &std::path::Path) -> io::Result<ReaderStream<toki
     let mut opts = tokio::fs::OpenOptions::new();
     let file = opts.read(true).open(path).await?;
     Ok(ReaderStream::new(file))
+}
+
+pub async fn read<T: AsyncFile>(file: &mut T) -> io::Result<Bytes> {
+    let mut output = BytesMut::new();
+    let reader = file.reader().await?;
+    pin_mut!(reader);
+
+    while let Some(next) = reader.try_next().await? {
+        output.extend(next);
+    }
+
+    Ok(output.freeze())
 }
