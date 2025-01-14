@@ -142,7 +142,7 @@ pub trait DynamicAsyncFileStore {
     fn open_file<'a>(
         &'a self,
         path: &'a RelativePath,
-    ) -> BoxFuture<'a, Result<BoxAsyncFile, io::Error>>;
+    ) -> BoxFuture<'a, Result<BoxAsyncFile<'static>, io::Error>>;
 
     fn rm_file<'a>(&'a self, path: &'a RelativePath) -> BoxFuture<'a, Result<(), io::Error>>;
 
@@ -195,7 +195,7 @@ where
     fn open_file<'a>(
         &'a self,
         path: &'a RelativePath,
-    ) -> BoxFuture<'a, Result<BoxAsyncFile, io::Error>> {
+    ) -> BoxFuture<'a, Result<BoxAsyncFile<'static>, io::Error>> {
         Box::pin(async move {
             let file = self.0.open_file(path).await?;
             Ok(Box::new(DynamicFileBox(file)) as BoxAsyncFile)
@@ -250,10 +250,10 @@ where
 
 pub type BoxAsyncFileStore = Box<dyn DynamicAsyncFileStore + Send + Sync>;
 
-pub type BoxAsyncFile = Box<dyn DynamicAsyncFile + Send + Sync>;
+pub type BoxAsyncFile<'a> = Box<dyn DynamicAsyncFile + Send + Sync + 'a>;
 
 impl AsyncFileStore for BoxAsyncFileStore {
-    type File = BoxAsyncFile;
+    type File = BoxAsyncFile<'static>;
 
     fn metadata(
         &self,
@@ -293,7 +293,7 @@ impl AsyncFileStore for BoxAsyncFileStore {
     }
 }
 
-impl AsyncFile for BoxAsyncFile {
+impl<'a> AsyncFile for BoxAsyncFile<'a> {
     type Body = BoxStream<'static, Result<Bytes, io::Error>>;
 
     fn read_range(

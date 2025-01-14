@@ -83,7 +83,7 @@ impl AsyncComposite {
 }
 
 impl AsyncFileStore for AsyncComposite {
-    type File = BoxAsyncFile;
+    type File = BoxAsyncFile<'static>;
 
     fn metadata(
         &self,
